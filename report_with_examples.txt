@@ -1,0 +1,339 @@
+
+
+
+Ritu Prajapati
+SBU ID: 111485620
+
+
+==========This report presents a brief description of the working of passive network monitoring application in C============ 
+
+How to run the application:
+1. Extract all the files from the tar file.
+2. Run make in the folder containing makefile.
+3. A new file mydump should be available after make.
+4. Use # ./mydump <option> <argument> to start capturing packets offline or online.
+
+
+The application executes in the following manner:
+
+1. It will look for a device or a .pcap file from where it has to capture the packets. 
+
+	1.1  If -i option is given, it will run in an online mode and continues to capture the packets from the interface until interrupted. If the interface provided is not valid, the application prints an error and exit.
+  
+	1.2. If -r option is given, it will extract the name of the file and open a connection with the file in offline mode. It will capture all the packets or a subset of the packets according to the filters and matching expression.
+
+	1.3 If neither an interface or file option is mentioned, the application will try to lookup for the device and if found, starts a online packet capturing mode on the interface until interrupted. If no device is found, it will print an error and exit.
+
+	1.4 If multiple options are given, the application will prompt the user to provide a single interface.
+
+2. If the user has provided an expression to the application, it will first compile the expression to check if it is a valid filter or not. If valid, it sets the filter and capture the packets that only in accord with the filter.
+
+3. The application initializes the ethernet_header and extracts the Source MAC address, Destination MAC address, date and time using the header pointer. 
+
+4. Using the eth_type field in ethernet header, the application decides which protocol this packet belongs I.e, IP or ARP.
+
+5. Using the ip_p field from the IP packet the application marks the type of transport layer protocol i.e, TCP, UDP, ICMP, UNKNOWN.
+
+6. Given the transport layer protocol, the application extracts the Source and Destination port.
+
+7. In the transport layer protocol switch cases, the calculates the payload length and the payload index in the packet.
+
+8. The application now checks if there is a -s option. If yes it will try to locate the string in the payload and prints the packet only if the string is present.
+
+9. If there is no string option given to the application or a given string pattern is found in the payload, the application will print the packet in following format:
+
+<Date> <Time> <Source MAC Address> <Destination MAC Address>  Ethertype <IPV4/IP6/ARP> <Hex-value-for-ethertype> Length:<length-of-the-packet> <Source-IP-Address>:<Source_port> <Destination-IP-Address>:<Destination-Port>, <Transport-layer-protocol> <Payload-Length> <\n>
+<Payload-Hex-Format> <Payload-Printable-Format> <\n>
+ 
+
+
+Following are the outputs of different inputs given to the application(the application captured many packets, but for simplicity few are shown in this report):
+
+
+1. #./mydump > head1  		
+
+Output: (The application automatically selected the interface)
+
+2017-10-06 13:52:44.737398  8c:85:90:18:e9:6f > 2c:23:3a:9c:01:4b ethertype IPv4 (0x0800) length: 90 10.1.190.124:123 > 17.253.14.253:123 UDP, Payload length: 48
+45 b8 00 4c 76 e9 00 00 40 11 19 89 0a 01 be 7c 11 fd 0e fd   E..Lv...@......|....
+00 7b 00 7b 00 38 55 5b 23 02 06 ec 00 00 01 3e 00 00 0d 1d   .{.{.8U[#......>....
+11 fd 0e fd dd 82 3e cd 8d 24 d1 05 dd 82 40 e5 97 0a e3 6d   ......>..$....@....m
+dd 82 40 e5 8a d2 fe c2 dd 82 41 6c bc c0 cf 69               ..@.......Al...i
+
+2017-10-06 13:52:44.742316  2c:23:3a:9c:01:4b > 8c:85:90:18:e9:6f ethertype IPv4 (0x0800) length: 90 17.253.14.253:123 > 10.1.190.124:123 UDP, Payload length: 48
+45 00 00 4c 8d 72 40 00 3a 11 c9 b7 11 fd 0e fd 0a 01 be 7c   E..L.r@.:..........|
+00 7b 00 7b 00 38 43 bf 24 01 06 ec 00 00 00 00 00 00 00 48   .{.{.8C.$..........H
+47 50 53 73 dd 82 41 65 13 79 4b cd dd 82 41 6c bc c0 cf 69   GPSs..Ae.yK...Al...i
+dd 82 41 6c ca 75 d8 c0 dd 82 41 6c ca 77 36 84               ..Al.u....Al.w6.
+
+2017-10-06 13:52:47.724339  8c:85:90:18:e9:6f > 2c:23:3a:9c:01:4b ethertype IPv4 (0x0800) length: 105 10.1.190.124:50048 > 34.196.41.207:443 TCP, Payload length: 39
+45 00 00 5b 89 b2 40 00 40 06 9b da 0a 01 be 7c 22 c4 29 cf   E..[..@.@......|".).
+c3 80 01 bb 9e a6 8e fa 96 0d 8e 20 80 18 10 00 c9 bf 00 00   ........... ........
+01 01 08 0a 08 ac 90 7a 30 89 6a 9b 17 03 03 00 22 82 93 2e   .......z0.j....."...
+20 1e fe e4 7f 5a ac 95 fa bc 84 75 1b 4d ca fb 6d 24 ec 21    ....Z.....u.M..m$.!
+10 35 57 37 97 13 3d 4a ac 34 7b                              .5W7..=J.4{
+
+
+2. #./mydump -i en0 > head1
+
+Output:
+
+2017-10-06 13:56:30.877615  8c:85:90:18:e9:6f > 2c:23:3a:9c:01:4b ethertype IPv4 (0x0800) length: 85 10.1.190.124:53442 > 10.1.16.16:53 UDP, Payload length: 43
+45 00 00 47 fb 41 00 00 ff 11 dd d5 0a 01 be 7c 0a 01 10 10   E..G.A.........|....
+d0 c2 00 35 00 33 0e 66 92 85 01 00 00 01 00 00 00 00 00 00   ...5.3.f............
+0a 62 6c 61 63 6b 62 6f 61 72 64 0a 73 74 6f 6e 79 62 72 6f   .blackboard.stonybro
+6f 6b 03 65 64 75 00 00 01 00 01                              ok.edu.....
+
+2017-10-06 13:56:30.882689  2c:23:3a:9c:01:4b > 8c:85:90:18:e9:6f ethertype IPv4 (0x0800) length: 131 10.1.16.16:53 > 10.1.190.124:53442 UDP, Payload length: 89
+45 00 00 75 36 70 00 00 3d 11 64 7a 0a 01 10 10 0a 01 be 7c   E..u6p..=.dz.......|
+00 35 d0 c2 00 61 54 2a 92 85 81 80 00 01 00 02 00 00 00 00   .5...aT*............
+0a 62 6c 61 63 6b 62 6f 61 72 64 0a 73 74 6f 6e 79 62 72 6f   .blackboard.stonybro
+6f 6b 03 65 64 75 00 00 01 00 01 c0 0c 00 05 00 01 00 00 02   ok.edu..............
+bc 00 12 05 63 68 61 6c 6b 02 69 63 06 73 75 6e 79 73 62 c0   ....chalk.ic.sunysb.
+22 c0 37 00 01 00 01 00 00 02 bc 00 04 81 31 01 1a            ".7...........1..
+
+2017-10-06 13:56:30.883280  8c:85:90:18:e9:6f > 2c:23:3a:9c:01:4b ethertype IPv4 (0x0800) length: 78 10.1.190.124:50123 > 129.49.1.26:443 TCP, Payload length: 0
+45 00 00 40 2c 09 40 00 40 06 c3 e6 0a 01 be 7c 81 31 01 1a   E..@,.@.@......|.1..
+c3 cb 01 bb d0 84 0a c9 00 00 00 00 b0 c2 ff ff 4a 26 00 00   ................J&..
+02 04 05 b4 01 03 03 05 01 01 08 0a 08 af f7 ca 00 00 00 00   ....................
+04 02 00 00                                                    ....
+
+2017-10-06 13:56:30.886775  2c:23:3a:9c:01:4b > 8c:85:90:18:e9:6f ethertype IPv4 (0x0800) length: 62 129.49.1.26:443 > 10.1.190.124:50123 TCP, Payload length: 0
+45 00 00 30 00 00 40 00 3c 06 f3 ff 81 31 01 1a 0a 01 be 7c   E..0..@.<....1.....|
+01 bb c3 cb 64 5a 22 b8 d0 84 0a ca 70 52 39 08 d8 59 00 00   ....dZ".....pR9..Y..
+02 04 05 6a 01 03 03 07                                       ...j....
+
+
+3. #./mydump -i en0 "src port 443" > head1
+
+Output:
+
+2017-10-06 14:01:12.877673  2c:23:3a:9c:01:4b > 8c:85:90:18:e9:6f ethertype IPv4 (0x0800) length: 66 172.217.12.130:443 > 10.1.190.124:50126 TCP, Payload length: 0
+45 00 00 34 12 ec 00 00 36 06 ef ff ac d9 0c 82 0a 01 be 7c   E..4....6..........|
+01 bb c3 ce a2 17 68 df 29 16 2a 9b 80 10 00 c0 2d 89 00 00   ......h.).*.....-...
+01 01 08 0a 73 c0 e1 40 08 b4 44 b4                           ....s..@..D.
+
+2017-10-06 14:01:12.877678  2c:23:3a:9c:01:4b > 8c:85:90:18:e9:6f ethertype IPv4 (0x0800) length: 66 172.217.12.130:443 > 10.1.190.124:50126 TCP, Payload length: 0
+45 00 00 34 12 ed 00 00 36 06 ef fe ac d9 0c 82 0a 01 be 7c   E..4....6..........|
+01 bb c3 ce a2 17 68 df 29 16 2a 9c 80 11 00 c0 2d 86 00 00   ......h.).*.....-...
+01 01 08 0a 73 c0 e1 41 08 b4 44 b4                           ....s..A..D.
+
+2017-10-06 14:01:14.438193  2c:23:3a:9c:01:4b > 8c:85:90:18:e9:6f ethertype IPv4 (0x0800) length: 97 34.196.41.207:443 > 10.1.190.124:50048 TCP, Payload length: 31
+45 00 00 53 ee c4 40 00 ed 06 89 cf 22 c4 29 cf 0a 01 be 7c   E..S..@.....".)....|
+01 bb c3 80 96 0d 92 76 9e a6 90 a6 80 18 00 74 9d b1 00 00   .......v.......t....
+01 01 08 0a 30 8b 83 a5 08 b3 87 b3 17 03 03 00 1a bd ba 2c   ....0..............,
+db e3 d2 b9 a3 4c c8 a2 88 96 23 8c c8 bb e4 cb 26 31 53 16   .....L....#.....&1S.
+af 4f d6                                                       .O.
+
+2017-10-06 14:01:14.438197  2c:23:3a:9c:01:4b > 8c:85:90:18:e9:6f ethertype IPv4 (0x0800) length: 146 34.196.41.207:443 > 10.1.190.124:50048 TCP, Payload length: 80
+45 00 00 84 ee c5 40 00 ed 06 89 9d 22 c4 29 cf 0a 01 be 7c   E.....@.....".)....|
+01 bb c3 80 96 0d 92 95 9e a6 90 a6 80 18 00 74 7b 8d 00 00   ...............t{...
+01 01 08 0a 30 8b 83 a5 08 b3 87 b3 17 03 03 00 4b bd ba 2c   ....0...........K..,
+db e3 d2 b9 a4 9c 1d 10 fa f6 f8 66 85 1d 17 f4 63 c3 e7 bf   ...........f....c...
+d8 a9 e2 05 92 a5 8f 21 cb 34 62 98 a2 af 8a dc d9 cf bb ca   .......!.4b.........
+72 32 03 aa c4 3b 99 e4 ed c1 b5 ee c7 20 1c f2 70 d8 16 8d   r2...;....... ..p...
+c9 a9 95 77 5e 7e b7 d0 3b c9 b5 9b                           ...w^~..;...
+
+
+4. # ./mydump -r hw1.pcap  > head1
+
+Output:
+
+2013-01-12 11:37:42.871346  c4:3d:c7:17:6f:9b > ff:ff:ff:ff:ff:ff Type: ARP (0x0806), length: 60 Request who-has 192.168.0.12 tell 192.168.0.1, Length 46
+00 01 08 00 06 04 00 01 c4 3d c7 17 6f 9b c0 a8 00 01 00 00   .........=..o.......
+00 00 00 00 c0 a8 00 0c 00 00 00 00 00 00 00 00 00 00 00 00   ....................
+00 00 00 00 00 00                                              ......
+
+2013-01-12 11:38:02.227995  c4:3d:c7:17:6f:9b > 1:0:5e:7f:ff:fa ethertype IPv4 (0x0800) length: 342 192.168.0.1:1901 > 239.255.255.250:1900 UDP, Payload length: 300
+45 00 01 48 de ad 00 00 04 11 26 54 c0 a8 00 01 ef ff ff fa   E..H......&T........
+07 6d 07 6c 01 34 bf 5d 4e 4f 54 49 46 59 20 2a 20 48 54 54   .m.l.4.]NOTIFY * HTT
+50 2f 31 2e 31 0d 0a 48 4f 53 54 3a 20 32 33 39 2e 32 35 35   P/1.1..HOST: 239.255
+2e 32 35 35 2e 32 35 30 3a 31 39 30 30 0d 0a 43 61 63 68 65   .255.250:1900..Cache
+2d 43 6f 6e 74 72 6f 6c 3a 20 6d 61 78 2d 61 67 65 3d 33 36   -Control: max-age=36
+30 30 0d 0a 4c 6f 63 61 74 69 6f 6e 3a 20 68 74 74 70 3a 2f   00..Location: http:/
+2f 31 39 32 2e 31 36 38 2e 30 2e 31 3a 38 30 2f 52 6f 6f 74   /192.168.0.1:80/Root
+44 65 76 69 63 65 2e 78 6d 6c 0d 0a 4e 54 3a 20 75 75 69 64   Device.xml..NT: uuid
+3a 75 70 6e 70 2d 49 6e 74 65 72 6e 65 74 47 61 74 65 77 61   :upnp-InternetGatewa
+79 44 65 76 69 63 65 2d 31 5f 30 2d 63 34 33 64 63 37 31 37   yDevice-1_0-c43dc717
+36 66 39 62 0d 0a 55 53 4e 3a 20 75 75 69 64 3a 75 70 6e 70   6f9b..USN: uuid:upnp
+2d 49 6e 74 65 72 6e 65 74 47 61 74 65 77 61 79 44 65 76 69   -InternetGatewayDevi
+63 65 2d 31 5f 30 2d 63 34 33 64 63 37 31 37 36 66 39 62 0d   ce-1_0-c43dc7176f9b.
+0a 4e 54 53 3a 20 73 73 64 70 3a 61 6c 69 76 65 0d 0a 53 65   .NTS: ssdp:alive..Se
+72 76 65 72 3a 20 55 50 6e 50 2f 31 2e 30 20 55 50 6e 50 2f   rver: UPnP/1.0 UPnP/
+31 2e 30 20 55 50 6e 50 2d 44 65 76 69 63 65 2d 48 6f 73 74   1.0 UPnP-Device-Host
+2f 31 2e 30 0d 0a 0d 0a                                       /1.0....
+
+2013-01-12 11:38:02.231699  c4:3d:c7:17:6f:9b > 1:0:5e:7f:ff:fa ethertype IPv4 (0x0800) length: 398 192.168.0.1:1901 > 239.255.255.250:1900 UDP, Payload length: 356
+45 00 01 80 de ad 00 00 04 11 26 1c c0 a8 00 01 ef ff ff fa   E.........&.........
+07 6d 07 6c 01 6c bc 0e 4e 4f 54 49 46 59 20 2a 20 48 54 54   .m.l.l..NOTIFY * HTT
+50 2f 31 2e 31 0d 0a 48 4f 53 54 3a 20 32 33 39 2e 32 35 35   P/1.1..HOST: 239.255
+2e 32 35 35 2e 32 35 30 3a 31 39 30 30 0d 0a 43 61 63 68 65   .255.250:1900..Cache
+2d 43 6f 6e 74 72 6f 6c 3a 20 6d 61 78 2d 61 67 65 3d 33 36   -Control: max-age=36
+30 30 0d 0a 4c 6f 63 61 74 69 6f 6e 3a 20 68 74 74 70 3a 2f   00..Location: http:/
+2f 31 39 32 2e 31 36 38 2e 30 2e 31 3a 38 30 2f 52 6f 6f 74   /192.168.0.1:80/Root
+44 65 76 69 63 65 2e 78 6d 6c 0d 0a 4e 54 3a 20 75 72 6e 3a   Device.xml..NT: urn:
+73 63 68 65 6d 61 73 2d 75 70 6e 70 2d 6f 72 67 3a 64 65 76   schemas-upnp-org:dev
+69 63 65 3a 49 6e 74 65 72 6e 65 74 47 61 74 65 77 61 79 44   ice:InternetGatewayD
+65 76 69 63 65 3a 31 0d 0a 55 53 4e 3a 20 75 75 69 64 3a 75   evice:1..USN: uuid:u
+70 6e 70 2d 49 6e 74 65 72 6e 65 74 47 61 74 65 77 61 79 44   pnp-InternetGatewayD
+65 76 69 63 65 2d 31 5f 30 2d 63 34 33 64 63 37 31 37 36 66   evice-1_0-c43dc7176f
+39 62 3a 3a 75 72 6e 3a 73 63 68 65 6d 61 73 2d 75 70 6e 70   9b::urn:schemas-upnp
+2d 6f 72 67 3a 64 65 76 69 63 65 3a 49 6e 74 65 72 6e 65 74   -org:device:Internet
+47 61 74 65 77 61 79 44 65 76 69 63 65 3a 31 0d 0a 4e 54 53   GatewayDevice:1..NTS
+3a 20 73 73 64 70 3a 61 6c 69 76 65 0d 0a 53 65 72 76 65 72   : ssdp:alive..Server
+3a 20 55 50 6e 50 2f 31 2e 30 20 55 50 6e 50 2f 31 2e 30 20   : UPnP/1.0 UPnP/1.0 
+55 50 6e 50 2d 44 65 76 69 63 65 2d 48 6f 73 74 2f 31 2e 30   UPnP-Device-Host/1.0
+0d 0a 0d 0a                                                    ....
+
+-------
+
+5. # ./mydump -r hw1.pcap "src host 91.189.90.40 and dst host 192.168.0.200"> head1
+
+2013-01-13 05:36:10.315009  c4:3d:c7:17:6f:9b > 0:c:29:e9:94:8e ethertype IPv4 (0x0800) length: 74 91.189.90.40:80 > 192.168.0.200:42497 TCP, Payload length: 0
+45 00 00 3c 00 00 40 00 31 06 d2 66 5b bd 5a 28 c0 a8 00 c8   E..<..@.1..f[.Z(....
+00 50 a6 01 bc 16 57 5e 91 68 25 96 a0 12 16 a0 65 8e 00 00   .P....W^.h%.....e...
+02 04 05 b4 04 02 08 0a 16 79 84 3d 01 00 47 f0 01 03 03 07   .........y.=..G.....
+
+2013-01-13 05:36:10.587637  c4:3d:c7:17:6f:9b > 0:c:29:e9:94:8e ethertype IPv4 (0x0800) length: 66 91.189.90.40:80 > 192.168.0.200:42497 TCP, Payload length: 0
+45 00 00 34 d3 60 40 00 31 06 ff 0d 5b bd 5a 28 c0 a8 00 c8   E..4.`@.1...[.Z(....
+00 50 a6 01 bc 16 57 5f 91 68 27 32 80 10 00 36 a8 c8 00 00   .P....W_.h'2...6....
+01 01 08 0a 16 79 84 58 01 00 48 35                           .....y.X..H5
+
+2013-01-13 05:36:10.592137  c4:3d:c7:17:6f:9b > 0:c:29:e9:94:8e ethertype IPv4 (0x0800) length: 628 91.189.90.40:80 > 192.168.0.200:42497 TCP, Payload length: 562
+45 00 02 66 d3 61 40 00 31 06 fc da 5b bd 5a 28 c0 a8 00 c8   E..f.a@.1...[.Z(....
+00 50 a6 01 bc 16 57 5f 91 68 27 32 80 18 00 36 87 f1 00 00   .P....W_.h'2...6....
+01 01 08 0a 16 79 84 59 01 00 48 35 48 54 54 50 2f 31 2e 30   .....y.Y..H5HTTP/1.0
+20 32 30 30 20 4f 4b 0d 0a 43 6f 6e 74 65 6e 74 2d 4c 6f 63    200 OK..Content-Loc
+61 74 69 6f 6e 3a 20 69 6e 64 65 78 2e 68 74 6d 6c 2e 65 6e   ation: index.html.en
+0d 0a 54 43 4e 3a 20 63 68 6f 69 63 65 0d 0a 4c 61 73 74 2d   ..TCN: choice..Last-
+4d 6f 64 69 66 69 65 64 3a 20 4d 6f 6e 2c 20 30 31 20 4f 63   Modified: Mon, 01 Oc
+74 20 32 30 31 32 20 31 35 3a 35 37 3a 30 39 20 47 4d 54 0d   t 2012 15:57:09 GMT.
+0a 41 63 63 65 70 74 2d 52 61 6e 67 65 73 3a 20 62 79 74 65   .Accept-Ranges: byte
+73 0d 0a 43 6f 6e 74 65 6e 74 2d 45 6e 63 6f 64 69 6e 67 3a   s..Content-Encoding:
+20 67 7a 69 70 0d 0a 43 6f 6e 74 65 6e 74 2d 4c 65 6e 67 74    gzip..Content-Lengt
+68 3a 20 31 38 37 39 0d 0a 43 6f 6e 74 65 6e 74 2d 54 79 70   h: 1879..Content-Typ
+65 3a 20 74 65 78 74 2f 68 74 6d 6c 0d 0a 43 6f 6e 74 65 6e   e: text/html..Conten
+74 2d 4c 61 6e 67 75 61 67 65 3a 20 65 6e 0d 0a 44 61 74 65   t-Language: en..Date
+3a 20 53 75 6e 2c 20 31 33 20 4a 61 6e 20 32 30 31 33 20 31   : Sun, 13 Jan 2013 1
+30 3a 31 36 3a 35 39 20 47 4d 54 0d 0a 53 65 72 76 65 72 3a   0:16:59 GMT..Server:
+20 41 70 61 63 68 65 2f 32 2e 32 2e 32 32 20 28 55 62 75 6e    Apache/2.2.22 (Ubun
+74 75 29 0d 0a 45 54 61 67 3a 20 22 31 38 36 31 61 39 30 2d   tu)..ETag: "1861a90-
+31 37 38 39 2d 34 63 62 30 31 37 34 64 31 66 35 37 34 22 0d   1789-4cb0174d1f574".
+0a 56 61 72 79 3a 20 6e 65 67 6f 74 69 61 74 65 2c 61 63 63   .Vary: negotiate,acc
+65 70 74 2d 6c 61 6e 67 75 61 67 65 2c 41 63 63 65 70 74 2d   ept-language,Accept-
+45 6e 63 6f 64 69 6e 67 0d 0a 41 67 65 3a 20 31 31 35 32 0d   Encoding..Age: 1152.
+0a 58 2d 43 61 63 68 65 3a 20 48 49 54 20 66 72 6f 6d 20 61   .X-Cache: HIT from a
+76 6f 63 61 64 6f 2e 63 61 6e 6f 6e 69 63 61 6c 2e 63 6f 6d   vocado.canonical.com
+0d 0a 58 2d 43 61 63 68 65 2d 4c 6f 6f 6b 75 70 3a 20 48 49   ..X-Cache-Lookup: HI
+54 20 66 72 6f 6d 20 61 76 6f 63 61 64 6f 2e 63 61 6e 6f 6e   T from avocado.canon
+69 63 61 6c 2e 63 6f 6d 3a 38 30 0d 0a 56 69 61 3a 20 31 2e   ical.com:80..Via: 1.
+31 20 61 76 6f 63 61 64 6f 2e 63 61 6e 6f 6e 69 63 61 6c 2e   1 avocado.canonical.
+63 6f 6d 3a 38 30 20 28 73 71 75 69 64 2f 32 2e 37 2e 53 54   com:80 (squid/2.7.ST
+41 42 4c 45 37 29 0d 0a 43 6f 6e 6e 65 63 74 69 6f 6e 3a 20   ABLE7)..Connection: 
+6b 65 65 70 2d 61 6c 69 76 65 0d 0a 0d 0a                     keep-alive....
+
+
+6. # ./mydump -r hw1.pcap -s jpg> head1
+
+Output:
+
+2013-01-12 22:30:48.908526  c4:3d:c7:17:6f:9b > 0:c:29:e9:94:8e ethertype IPv4 (0x0800) length: 177 92.240.68.152:9485 > 192.168.0.200:80 TCP, Payload length: 111
+45 00 00 a3 a3 da 40 00 37 06 3c 82 5c f0 44 98 c0 a8 00 c8   E.....@.7.<.\.D.....
+25 0d 00 50 ef 75 98 2b 7f 92 4f 84 80 18 00 0c 8c 49 00 00   %..P.u.+..O......I..
+01 01 08 0a 11 e8 3e fe 00 9e ec a6 47 45 54 20 68 74 74 70   ......>.....GET http
+3a 2f 2f 70 69 63 2e 6c 65 65 63 68 2e 69 74 2f 69 2f 66 31   ://pic.leech.it/i/f1
+36 36 63 2f 34 37 39 32 34 36 62 30 61 73 74 74 61 73 2e 6a   66c/479246b0asttas.j
+70 67 20 48 54 54 50 2f 31 2e 31 0a 55 73 65 72 2d 41 67 65   pg HTTP/1.1.User-Age
+6e 74 3a 20 77 65 62 63 6f 6c 6c 61 67 65 2f 31 2e 31 33 35   nt: webcollage/1.135
+61 0a 48 6f 73 74 3a 20 70 69 63 2e 6c 65 65 63 68 2e 69 74   a.Host: pic.leech.it
+0a 0a 00                                                       ...
+
+2013-01-12 22:30:49.032953  0:c:29:e9:94:8e > c4:3d:c7:17:6f:9b ethertype IPv4 (0x0800) length: 229 192.168.0.200:40341 > 87.98.246.8:80 TCP, Payload length: 163
+45 00 00 d7 8a 80 40 00 40 06 a0 c5 c0 a8 00 c8 57 62 f6 08   E.....@.@.......Wb..
+9d 95 00 50 35 6e 66 b0 d3 f2 63 38 80 18 03 91 33 f1 00 00   ...P5nf...c8....3...
+01 01 08 0a 00 9e ec d8 67 ff b5 c8 47 45 54 20 2f 69 2f 66   ........g...GET /i/f
+31 36 36 63 2f 34 37 39 32 34 36 62 30 61 73 74 74 61 73 2e   166c/479246b0asttas.
+6a 70 67 20 48 54 54 50 2f 31 2e 30 0d 0a 55 73 65 72 2d 41   jpg HTTP/1.0..User-A
+67 65 6e 74 3a 20 4d 6f 7a 69 6c 6c 61 2f 34 2e 30 20 28 63   gent: Mozilla/4.0 (c
+6f 6d 70 61 74 69 62 6c 65 3b 20 4d 53 49 45 20 36 2e 30 3b   ompatible; MSIE 6.0;
+20 57 69 6e 64 6f 77 73 20 4e 54 20 35 2e 31 29 0d 0a 41 63    Windows NT 5.1)..Ac
+63 65 70 74 3a 20 2a 2f 2a 0d 0a 48 6f 73 74 3a 20 70 69 63   cept: */*..Host: pic
+2e 6c 65 65 63 68 2e 69 74 3a 38 30 0d 0a 43 6f 6e 6e 65 63   .leech.it:80..Connec
+74 69 6f 6e 3a 20 63 6c 6f 73 65 0d 0a 0d 0a                  tion: close....
+
+2013-01-12 22:31:19.154432  c4:3d:c7:17:6f:9b > 0:c:29:e9:94:8e ethertype IPv4 (0x0800) length: 207 92.240.68.152:17260 > 192.168.0.200:80 TCP, Payload length: 141
+45 00 00 c1 97 12 40 00 37 06 49 2c 5c f0 44 98 c0 a8 00 c8   E.....@.7.I,\.D.....
+43 6c 00 50 0e 46 cb 69 79 e3 6d 3d 80 18 00 0c 0c a2 00 00   Cl.P.F.iy.m=........
+01 01 08 0a 11 e8 5c 87 00 9f 0a 33 47 45 54 20 68 74 74 70   ......\....3GET http
+3a 2f 2f 65 63 78 2e 69 6d 61 67 65 73 2d 61 6d 61 7a 6f 6e   ://ecx.images-amazon
+2e 63 6f 6d 2f 69 6d 61 67 65 73 2f 49 2f 34 31 6f 5a 31 58   .com/images/I/41oZ1X
+73 69 4f 41 4c 2e 5f 53 4c 35 30 30 5f 41 41 33 30 30 5f 2e   siOAL._SL500_AA300_.
+6a 70 67 20 48 54 54 50 2f 31 2e 31 0a 55 73 65 72 2d 41 67   jpg HTTP/1.1.User-Ag
+65 6e 74 3a 20 77 65 62 63 6f 6c 6c 61 67 65 2f 31 2e 31 33   ent: webcollage/1.13
+35 61 0a 48 6f 73 74 3a 20 65 63 78 2e 69 6d 61 67 65 73 2d   5a.Host: ecx.images-
+61 6d 61 7a 6f 6e 2e 63 6f 6d 0a 0a 00                        amazon.com...
+
+
+7. # ./mydump -r hw1.pcap udp -s "images-amazon.com"> head1
+
+Output: (2 Packets)
+
+2013-01-12 22:31:19.174125  c4:3d:c7:17:6f:9b > 0:c:29:e9:94:8e ethertype IPv4 (0x0800) length: 252 194.168.4.100:53 > 192.168.0.200:37605 UDP, Payload length: 210
+45 00 00 ee 3a 6f 40 00 fd 11 ba 12 c2 a8 04 64 c0 a8 00 c8   E...:o@........d....
+00 35 92 e5 00 da f2 95 31 20 81 80 00 01 00 09 00 00 00 00   .5......1 ..........
+03 65 63 78 0d 69 6d 61 67 65 73 2d 61 6d 61 7a 6f 6e 03 63   .ecx.images-amazon.c
+6f 6d 00 00 01 00 01 c0 0c 00 05 00 01 00 00 00 1b 00 1f 0e   om..................
+64 31 67 65 30 6b 6b 31 6c 35 6b 6d 73 30 0a 63 6c 6f 75 64   d1ge0kk1l5kms0.cloud
+66 72 6f 6e 74 03 6e 65 74 00 c0 33 00 01 00 01 00 00 00 14   front.net..3........
+00 04 d8 89 3f 79 c0 33 00 01 00 01 00 00 00 14 00 04 d8 89   ....?y.3............
+3f 19 c0 33 00 01 00 01 00 00 00 14 00 04 d8 89 3f 15 c0 33   ?..3............?..3
+00 01 00 01 00 00 00 14 00 04 d8 89 3f b1 c0 33 00 01 00 01   ............?..3....
+00 00 00 14 00 04 d8 89 3f 71 c0 33 00 01 00 01 00 00 00 14   ........?q.3........
+00 04 d8 89 3f cd c0 33 00 01 00 01 00 00 00 14 00 04 d8 89   ....?..3............
+3f e9 c0 33 00 01 00 01 00 00 00 14 00 04 d8 89 3f 6d         ?..3............?m
+
+2013-01-13 05:44:46.264321  c4:3d:c7:17:6f:9b > 0:c:29:e9:94:8e ethertype IPv4 (0x0800) length: 252 194.168.4.100:53 > 192.168.0.200:55284 UDP, Payload length: 210
+45 00 00 ee 13 3f 40 00 fd 11 e1 42 c2 a8 04 64 c0 a8 00 c8   E....?@....B...d....
+00 35 d7 f4 00 da 16 b8 bd 5e 81 80 00 01 00 09 00 00 00 00   .5.......^..........
+03 65 63 78 0d 69 6d 61 67 65 73 2d 61 6d 61 7a 6f 6e 03 63   .ecx.images-amazon.c
+6f 6d 00 00 01 00 01 c0 0c 00 05 00 01 00 00 00 24 00 1f 0e   om..............$...
+64 31 67 65 30 6b 6b 31 6c 35 6b 6d 73 30 0a 63 6c 6f 75 64   d1ge0kk1l5kms0.cloud
+66 72 6f 6e 74 03 6e 65 74 00 c0 33 00 01 00 01 00 00 00 29   front.net..3.......)
+00 04 d8 89 3f 89 c0 33 00 01 00 01 00 00 00 29 00 04 d8 89   ....?..3.......)....
+3f ed c0 33 00 01 00 01 00 00 00 29 00 04 d8 89 3f e5 c0 33   ?..3.......)....?..3
+00 01 00 01 00 00 00 29 00 04 d8 89 3f 09 c0 33 00 01 00 01   .......)....?..3....
+00 00 00 29 00 04 d8 89 3f 3d c0 33 00 01 00 01 00 00 00 29   ...)....?=.3.......)
+00 04 d8 89 3f 95 c0 33 00 01 00 01 00 00 00 29 00 04 d8 89   ....?..3.......)....
+3f d9 c0 33 00 01 00 01 00 00 00 29 00 04 d8 89 3f c5         ?..3.......)....?.
+
+
+8. # ./mydump -r hw1.pcap arp > head1
+
+Output:
+
+2013-01-12 11:37:42.871346  c4:3d:c7:17:6f:9b > ff:ff:ff:ff:ff:ff Type: ARP (0x0806), length: 60 Request who-has 192.168.0.12 tell 192.168.0.1, Length 46
+00 01 08 00 06 04 00 01 c4 3d c7 17 6f 9b c0 a8 00 01 00 00   .........=..o.......
+00 00 00 00 c0 a8 00 0c 00 00 00 00 00 00 00 00 00 00 00 00   ....................
+00 00 00 00 00 00                                              ......
+
+2013-01-12 11:38:13.796474  c4:3d:c7:17:6f:9b > ff:ff:ff:ff:ff:ff Type: ARP (0x0806), length: 60 Request who-has 192.168.0.12 tell 192.168.0.1, Length 46
+00 01 08 00 06 04 00 01 c4 3d c7 17 6f 9b c0 a8 00 01 00 00   .........=..o.......
+00 00 00 00 c0 a8 00 0c 00 00 00 00 00 00 00 00 00 00 00 00   ....................
+00 00 00 00 00 00                                              ......
+
+2013-01-12 11:38:44.821049  c4:3d:c7:17:6f:9b > ff:ff:ff:ff:ff:ff Type: ARP (0x0806), length: 60 Request who-has 192.168.0.12 tell 192.168.0.1, Length 46
+00 01 08 00 06 04 00 01 c4 3d c7 17 6f 9b c0 a8 00 01 00 00   .........=..o.......
+00 00 00 00 c0 a8 00 0c 00 00 00 00 00 00 00 00 00 00 00 00   ....................
+00 00 00 00 00 00                                              ......
+
+2013-01-12 11:39:15.847663  c4:3d:c7:17:6f:9b > ff:ff:ff:ff:ff:ff Type: ARP (0x0806), length: 60 Request who-has 192.168.0.12 tell 192.168.0.1, Length 46
+00 01 08 00 06 04 00 01 c4 3d c7 17 6f 9b c0 a8 00 01 00 00   .........=..o.......
+00 00 00 00 c0 a8 00 0c 00 00 00 00 00 00 00 00 00 00 00 00   ....................
+00 00 00 00 00 00                                              ......
+
+2013-01-12 11:39:16.974524  c4:3d:c7:17:6f:9b > ff:ff:ff:ff:ff:ff Type: ARP (0x0806), length: 60 Request who-has 192.168.0.2 tell 192.168.0.1, Length 46
+00 01 08 00 06 04 00 01 c4 3d c7 17 6f 9b c0 a8 00 01 00 00   .........=..o.......
+00 00 00 00 c0 a8 00 02 00 00 00 00 00 00 00 00 00 00 00 00   ....................
+00 00 00 00 00 00                                              ......
+
+
